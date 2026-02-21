@@ -10,6 +10,7 @@ int distance, cm;
 
 // ##### Bool Logic #####
 bool bool_state;
+int distance_to_detect = 16  //in cm 
 
 
 
@@ -27,7 +28,7 @@ void loop() {
   // need to conver to respective units
   // converst and prints
  
-  //print_info(cm);
+  print_info(cm);
 
   cm = convert_to_cm(distance);
   
@@ -44,7 +45,7 @@ void loop() {
 bool detect_object(int cm) 
 {
   // if see object
-  if (cm >= 0 && cm < 75) 
+  if (cm >= 0 && cm < distance_to_detect) 
   { 
     return true;
   } 

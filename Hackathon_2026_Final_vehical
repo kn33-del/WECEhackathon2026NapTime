@@ -1,0 +1,190 @@
+#include <IRremote.h>
+
+//#####     sensor pins ####
+int trigpin_OT = 8;
+int echopin_IN = 9;
+
+int distance, cm;
+//############################
+
+// ##### Bool Logic #####
+bool bool_state;
+int distance_to_detect = 16;  //in cm 
+// ##########################
+
+//  ##### multi tasking timer logic ####
+	
+ long starting_time;
+ int delay_int = 500;
+ long delay_time = delay_int; //delay 2 second
+ long current_time;
+
+//####################################
+
+//######### Remote vars ##########
+//ALL the numbers E718FF00 number 2, A15EFF00 - #3, F708FF00 - #4, E31CFF00 - #5, A55AFF00 - #6, BD42FF00 - #7, AD52FF00 - #8, B54AFF00 - #9
+// Playback BB44FF00, Play forword BC43FF00, Arrow with equals BF40FF00, read power button BA45FF00
+
+int reciver_pin = 7;
+
+unsigned long remotevalue = 0;
+
+// ###############################
+void setup() {
+  Serial.begin(9600); // set up the monitor FIRST
+  delay(200);
+  starting_time = millis(); //set a time at the begining of arduing
+  //remote setup
+  IrReceiver.begin(reciver_pin);
+  Serial.println("IR Receiver Enabled");  // activate the reciver
+  
+  // setting the modes high/low of the ultra sensor pin
+  sensorsetup();
+  
+  
+}
+
+void loop() {
+  current_time = millis(); // another time when the function runs
+
+  if (current_time - starting_time >= delay_time) {
+  distance = sensorfunction(trigpin_OT, echopin_IN);
+ 
+  cm = convert_to_cm(distance);
+  bool_state = detect_object(cm);
+  //print_logic(bool_state);
+  
+  print_info(cm);
+  remote_print_info(); //print the value of button pressed
+
+
+  starting_time = current_time;
+
+ 
+  }
+ 
+  remote_function ();
+
+}
+
+
+// ###### remote functions #########
+void remote_function () 
+{
+  
+  if (IrReceiver.decode()) {
+   
+    if (!(IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT)) // a flage that stop the remote from repeating the action when held
+    {
+    remotevalue = IrReceiver.decodedIRData.decodedRawData;
+    switch (IrReceiver.decodedIRData.decodedRawData)
+    {
+      case 0xF30CFF00: //need to inlcude the 0x at the begining and this is  number 1
+        break;
+
+      default:
+        break;
+      
+    }
+
+  }
+  IrReceiver.resume(); //able to recive second input
+
+  }
+}
+
+
+void remote_print_info()
+{ 
+  Serial.print(" Remote: "); //print this first
+
+  if (remotevalue == 0) // nothing pressed
+  {
+    Serial.print("None");
+  }
+  else
+  {
+    Serial.print(remotevalue, HEX);
+  }
+  Serial.println(); //make new line
+};
+
+
+
+//  ############# logic ###############
+bool detect_object(int cm) 
+{
+  // if see object
+  if (cm >= 0 && cm < distance_to_detect) 
+  { 
+    Serial.print("STOPED: ");
+    Serial.print("True");
+    Serial.print(" | ");
+    return true;
+  } 
+  else
+  {
+    // if further than the distance do nothing
+    Serial.print("STOPED: ");
+    Serial.print("False");
+    Serial.print(" | ");
+    return false; 
+
+  }
+
+};
+
+void print_logic(bool bool_state)  //might not be use anymore
+{
+  Serial.print("STOPED: ");
+  Serial.print(bool_state);
+  delay(200);  //might cause problems
+  
+}
+
+//###################################
+
+//#### converstions funcitons ########
+void print_info(int cm) 
+{
+  Serial.print("CM: ");
+  Serial.print(cm);
+  Serial.print(" | ");
+};
+
+int convert_to_cm(int distance) {return (distance / 29) /2;};
+
+//####################################
+
+ // ########### sensor funcitons ################
+
+void sensorsetup() 
+{
+  pinMode(trigpin_OT, OUTPUT);
+  pinMode(echopin_IN, INPUT);
+};
+
+// get the time in ms and converst 
+long sensorfunction(int trigpin_OT, int echopin_IT) 
+{
+ 
+  // want the sensor to first begin off
+  // then shoot a pulse from the trig pin 
+  // after waits
+  // then get the input / distance it was recived using pulse in
+  // then conver the pulse in to the uniters
+  // turn off an repeate
+
+  digitalWrite(trigpin_OT, LOW);  // turn off the pin first
+  delayMicroseconds(2); // short_ delay
+
+  digitalWrite(trigpin_OT, HIGH); // send the signal
+  delayMicroseconds(10);
+  digitalWrite(trigpin_OT, LOW); // turn off
+
+
+  // get the trig pin infomation
+  // when the echopin goes hight it recived the signal from trigpin im 'mili seconds'
+  return pulseIn(echopin_IN, HIGH);
+
+};
